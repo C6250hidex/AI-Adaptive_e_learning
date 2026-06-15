@@ -41,6 +41,14 @@
     return "";
   }
 
+  function attemptLogin(credentials, baseUrl) {
+    return api.request("/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+      ...(baseUrl ? { baseUrl } : {}),
+    });
+  }
+
   async function handleLogin(event) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -59,10 +67,20 @@
     api.setBusy(button, true, "Logging in...");
 
     try {
-      let result = await api.request("/login", {
-        method: "POST",
-        body: JSON.stringify(credentials),
-      });
+      let result;
+
+      try {
+        result = await attemptLogin(credentials);
+      } catch (firstError) {
+        // If the primary API base failed entirely (e.g. wrong origin,
+        // network error), retry against the default backend before
+        // giving up.
+        if (api.getApiBase() !== api.getDefaultBackend()) {
+          result = await attemptLogin(credentials, api.getDefaultBackend());
+        } else {
+          throw firstError;
+        }
+      }
 
       let authToken = getLoginToken(result);
       if (
@@ -70,11 +88,7 @@
         result.baseUrl &&
         result.baseUrl !== api.getDefaultBackend()
       ) {
-        result = await api.request("/login", {
-          method: "POST",
-          body: JSON.stringify(credentials),
-          baseUrl: api.getDefaultBackend(),
-        });
+        result = await attemptLogin(credentials, api.getDefaultBackend());
         authToken = getLoginToken(result);
       }
 

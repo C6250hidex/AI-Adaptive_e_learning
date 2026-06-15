@@ -3,9 +3,7 @@
 
   const TOKEN_KEY = "aiLearnAuthToken";
   const USER_KEY = "aiLearnCurrentUser";
-  const API_BASE_KEY = "AI_LEARN_API_BASE_URL";
   const DEFAULT_BACKEND = "http://localhost:5000";
-  const memoryStorage = {};
 
   function trimTrailingSlash(value) {
     return String(value || "").replace(/\/+$/, "");
@@ -14,7 +12,7 @@
   function getApiBase() {
     const configured =
       window.AI_LEARN_API_BASE_URL ||
-      getStorageItem(API_BASE_KEY);
+      window.localStorage.getItem("AI_LEARN_API_BASE_URL");
 
     if (configured) return trimTrailingSlash(configured);
 
@@ -39,69 +37,23 @@
     return DEFAULT_BACKEND;
   }
 
-  function getStorageItem(key) {
-    for (const name of ["localStorage", "sessionStorage"]) {
-      try {
-        const storage = window[name];
-        const value = storage && storage.getItem(key);
-        if (value) return value;
-      } catch {
-        // Some browser privacy modes block web storage.
-      }
-    }
-
-    return memoryStorage[key] || "";
-  }
-
-  function setStorageItem(key, value) {
-    let stored = false;
-    const text = String(value || "");
-
-    for (const name of ["localStorage", "sessionStorage"]) {
-      try {
-        const storage = window[name];
-        if (!storage) continue;
-        storage.setItem(key, text);
-        stored = storage.getItem(key) === text || stored;
-      } catch {
-        // Fall back to in-memory storage below.
-      }
-    }
-
-    memoryStorage[key] = text;
-    return stored;
-  }
-
-  function removeStorageItem(key) {
-    for (const name of ["localStorage", "sessionStorage"]) {
-      try {
-        const storage = window[name];
-        if (storage) storage.removeItem(key);
-      } catch {
-        // Ignore storage cleanup failures.
-      }
-    }
-
-    delete memoryStorage[key];
-  }
-
   function getToken() {
-    return getStorageItem(TOKEN_KEY);
+    return window.localStorage.getItem(TOKEN_KEY) || "";
   }
 
   function setSession(token, username) {
-    const tokenStored = token ? setStorageItem(TOKEN_KEY, token) : false;
-    if (username) setStorageItem(USER_KEY, username);
-    return tokenStored;
+    if (token) window.localStorage.setItem(TOKEN_KEY, token);
+    if (username) window.localStorage.setItem(USER_KEY, username);
+    return true;
   }
 
   function clearSession() {
-    removeStorageItem(TOKEN_KEY);
-    removeStorageItem(USER_KEY);
+    window.localStorage.removeItem(TOKEN_KEY);
+    window.localStorage.removeItem(USER_KEY);
   }
 
   function getCurrentUser() {
-    return getStorageItem(USER_KEY);
+    return window.localStorage.getItem(USER_KEY) || "";
   }
 
   async function request(path, options = {}) {
@@ -157,7 +109,14 @@
       }
 
       if (json) {
-        return { response, text, json, authToken, username, baseUrl: requestBase };
+        return {
+          response,
+          text,
+          json,
+          authToken,
+          username,
+          baseUrl: requestBase,
+        };
       }
 
       return { response, text, authToken, username, baseUrl: requestBase };
@@ -170,7 +129,7 @@
         /failed to fetch|networkerror|load failed/i.test(error.message || "")
       ) {
         throw new Error(
-          `Cannot connect to the backend at ${requestBase}. Make sure the server is running and open the app from http://localhost:5000/app/login.html.`,
+          `Cannot connect to the backend at ${requestBase}. Make sure the backend server is running and reachable from this page.`,
         );
       }
       throw error;
