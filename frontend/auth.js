@@ -63,6 +63,13 @@
         }),
       });
 
+      if (!api.getToken() && result.authToken) {
+        api.setSession(
+          result.authToken,
+          result.username || formValue(form, "username"),
+        );
+      }
+
       if (!api.getToken() && !result.authToken) {
         api.showToast(
           "Login succeeded but session token could not be stored. Please try again.",

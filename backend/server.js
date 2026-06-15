@@ -876,6 +876,7 @@ function createApp(options = {}) {
 
     res.setHeader("X-Auth-Token", token);
     res.setHeader("X-User-Name", user.username);
+    res.setHeader("Access-Control-Expose-Headers", "X-Auth-Token, X-User-Name");
   }
 
   function authenticate(req, res, next) {
