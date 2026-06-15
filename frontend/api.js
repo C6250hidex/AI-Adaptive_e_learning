@@ -35,6 +35,10 @@
     return DEFAULT_BACKEND;
   }
 
+  function getDefaultBackend() {
+    return DEFAULT_BACKEND;
+  }
+
   function getStorageItem(key) {
     for (const name of ["localStorage", "sessionStorage"]) {
       try {
@@ -86,9 +90,9 @@
   }
 
   function setSession(token, username) {
-    if (token) setStorageItem(TOKEN_KEY, token);
+    const tokenStored = token ? setStorageItem(TOKEN_KEY, token) : false;
     if (username) setStorageItem(USER_KEY, username);
-    return token ? getToken() === token : false;
+    return tokenStored;
   }
 
   function clearSession() {
@@ -101,14 +105,16 @@
   }
 
   async function request(path, options = {}) {
+    const { baseUrl, timeout: timeoutMs, ...fetchOptions } = options;
+    const requestBase = trimTrailingSlash(baseUrl || getApiBase());
     const controller = new AbortController();
     const timeout = window.setTimeout(
       () => controller.abort(),
-      options.timeout || 20000,
+      timeoutMs || 20000,
     );
-    const headers = new Headers(options.headers || {});
+    const headers = new Headers(fetchOptions.headers || {});
 
-    if (options.body && !headers.has("Content-Type")) {
+    if (fetchOptions.body && !headers.has("Content-Type")) {
       headers.set("Content-Type", "application/json");
     }
 
@@ -118,8 +124,8 @@
     }
 
     try {
-      const response = await fetch(`${getApiBase()}${path}`, {
-        ...options,
+      const response = await fetch(`${requestBase}${path}`, {
+        ...fetchOptions,
         headers,
         signal: controller.signal,
       });
@@ -151,10 +157,10 @@
       }
 
       if (json) {
-        return { response, text, json, authToken, username };
+        return { response, text, json, authToken, username, baseUrl: requestBase };
       }
 
-      return { response, text, authToken, username };
+      return { response, text, authToken, username, baseUrl: requestBase };
     } catch (error) {
       if (error.name === "AbortError") {
         throw new Error("The request timed out. Please try again.");
@@ -212,6 +218,7 @@
     clearSession,
     getApiBase,
     getCurrentUser,
+    getDefaultBackend,
     getToken,
     request,
     setBusy,

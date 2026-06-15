@@ -46,6 +46,10 @@
     const form = event.currentTarget;
     const button = form.querySelector("button[type='submit']");
     const validationError = validateLogin(form);
+    const credentials = {
+      username: formValue(form, "username"),
+      password: formValue(form, "password"),
+    };
 
     if (validationError) {
       api.showToast(validationError, "warning");
@@ -55,24 +59,38 @@
     api.setBusy(button, true, "Logging in...");
 
     try {
-      const result = await api.request("/login", {
+      let result = await api.request("/login", {
         method: "POST",
-        body: JSON.stringify({
-          username: formValue(form, "username"),
-          password: formValue(form, "password"),
-        }),
+        body: JSON.stringify(credentials),
       });
 
-      const authToken =
-        result.authToken || (result.json && result.json.authToken) || "";
-      const username =
-        result.username ||
-        (result.json && result.json.username) ||
-        formValue(form, "username");
-
-      if (authToken) {
-        api.setSession(authToken, username);
+      let authToken = getLoginToken(result);
+      if (
+        !authToken &&
+        result.baseUrl &&
+        result.baseUrl !== api.getDefaultBackend()
+      ) {
+        result = await api.request("/login", {
+          method: "POST",
+          body: JSON.stringify(credentials),
+          baseUrl: api.getDefaultBackend(),
+        });
+        authToken = getLoginToken(result);
       }
+
+      const username = getLoginUsername(result) || credentials.username;
+
+      if (!authToken) {
+        api.showToast(
+          `Login response did not include a session token. The app is using ${result.baseUrl || api.getApiBase()}.`,
+          "error",
+        );
+        api.clearSession();
+        api.setBusy(button, false);
+        return;
+      }
+
+      const persisted = api.setSession(authToken, username);
 
       if (!api.getToken()) {
         api.showToast(
@@ -82,6 +100,13 @@
         api.clearSession();
         api.setBusy(button, false);
         return;
+      }
+
+      if (!persisted) {
+        api.showToast(
+          "Your browser is blocking persistent storage, so the dashboard may not remember this login after refresh.",
+          "warning",
+        );
       }
 
       api.showToast("Login successful. Opening dashboard...", "success");
@@ -95,6 +120,24 @@
       );
       api.setBusy(button, false);
     }
+  }
+
+  function getLoginToken(result) {
+    return (
+      result.authToken ||
+      (result.json && (result.json.authToken || result.json.token)) ||
+      ""
+    );
+  }
+
+  function getLoginUsername(result) {
+    return (
+      result.username ||
+      (result.json &&
+        (result.json.username ||
+          (result.json.user && result.json.user.username))) ||
+      ""
+    );
   }
 
   async function handleSignup(event) {
