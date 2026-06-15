@@ -23,10 +23,12 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5000",
   "http://localhost:5173",
   "http://localhost:5500",
+  "http://localhost:8080",
   "http://127.0.0.1:3000",
   "http://127.0.0.1:5000",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5500",
+  "http://127.0.0.1:8080",
 ];
 
 function getEnvList(name, fallback = []) {
@@ -36,6 +38,20 @@ function getEnvList(name, fallback = []) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function isLocalDevelopmentOrigin(origin) {
+  if (!origin || origin === "null") return true;
+
+  try {
+    const url = new URL(origin);
+    return (
+      ["http:", "https:"].includes(url.protocol) &&
+      ["localhost", "127.0.0.1", "::1", "[::1]"].includes(url.hostname)
+    );
+  } catch {
+    return false;
+  }
 }
 
 function base64Url(input) {
@@ -831,6 +847,11 @@ function createApp(options = {}) {
     options.codeTimeoutMs || process.env.CODE_TIMEOUT_MS || 8000,
   );
   const allowedOrigins = getEnvList("CLIENT_ORIGIN", DEFAULT_ALLOWED_ORIGINS);
+  const allowLocalDevelopmentOrigins =
+    options.allowLocalDevelopmentOrigins !== undefined
+      ? options.allowLocalDevelopmentOrigins
+      : process.env.ALLOW_LOCAL_DEV_ORIGINS !== "false" &&
+        process.env.NODE_ENV !== "production";
   const userStore = createUserStore(usersFile);
   const ai = createAiClient(
     options.geminiApiKey !== undefined
@@ -855,7 +876,11 @@ function createApp(options = {}) {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (
+          !origin ||
+          allowedOrigins.includes(origin) ||
+          (allowLocalDevelopmentOrigins && isLocalDevelopmentOrigin(origin))
+        ) {
           return callback(null, true);
         }
         return callback(new Error(`CORS blocked origin: ${origin}`));

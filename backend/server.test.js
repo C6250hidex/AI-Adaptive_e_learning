@@ -41,6 +41,29 @@ test("health route reports service status", async (t) => {
   assert.equal(body.service, "AI Learn backend");
 });
 
+test("local development origins can reach the API", async (t) => {
+  const server = await startTestServer();
+  t.after(server.close);
+
+  const liveServerResponse = await fetch(`${server.baseUrl}/health`, {
+    headers: { Origin: "http://127.0.0.1:5501" },
+  });
+  const fileOriginResponse = await fetch(`${server.baseUrl}/health`, {
+    headers: { Origin: "null" },
+  });
+
+  assert.equal(liveServerResponse.status, 200);
+  assert.equal(
+    liveServerResponse.headers.get("access-control-allow-origin"),
+    "http://127.0.0.1:5501",
+  );
+  assert.equal(fileOriginResponse.status, 200);
+  assert.equal(
+    fileOriginResponse.headers.get("access-control-allow-origin"),
+    "null",
+  );
+});
+
 test("signup creates a user and duplicate usernames are rejected", async (t) => {
   const server = await startTestServer();
   t.after(server.close);

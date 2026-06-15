@@ -165,6 +165,14 @@
       if (error.name === "AbortError") {
         throw new Error("The request timed out. Please try again.");
       }
+      if (
+        error instanceof TypeError &&
+        /failed to fetch|networkerror|load failed/i.test(error.message || "")
+      ) {
+        throw new Error(
+          `Cannot connect to the backend at ${requestBase}. Make sure the server is running and open the app from http://localhost:5000/app/login.html.`,
+        );
+      }
       throw error;
     } finally {
       window.clearTimeout(timeout);
