@@ -55,13 +55,23 @@
     api.setBusy(button, true, "Logging in...");
 
     try {
-      const response = await api.request("/login", {
+      const result = await api.request("/login", {
         method: "POST",
         body: JSON.stringify({
           username: formValue(form, "username"),
           password: formValue(form, "password"),
         }),
       });
+
+      if (!api.getToken() && !result.authToken) {
+        api.showToast(
+          "Login succeeded but session token could not be stored. Please try again.",
+          "error",
+        );
+        api.clearSession();
+        api.setBusy(button, false);
+        return;
+      }
 
       api.showToast("Login successful. Opening dashboard...", "success");
       window.setTimeout(() => {

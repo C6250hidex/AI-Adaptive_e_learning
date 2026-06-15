@@ -958,7 +958,12 @@
         (result.text.startsWith("{") ? JSON.parse(result.text) : {});
       elements.profileName.textContent =
         data.username || storedUser || "Learner";
-    } catch {
+    } catch (error) {
+      if (error.status === 401 || error.status === 403) {
+        api.clearSession();
+        window.location.href = "login.html";
+        return;
+      }
       elements.profileName.textContent = storedUser || "Guest";
     }
   }

@@ -90,9 +90,9 @@
 
       try {
         const json = JSON.parse(text);
-        return { response, text, json };
+        return { response, text, json, authToken, username };
       } catch {
-        return { response, text };
+        return { response, text, authToken, username };
       }
     } catch (error) {
       if (error.name === "AbortError") {
