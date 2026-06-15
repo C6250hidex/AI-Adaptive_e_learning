@@ -63,14 +63,18 @@
         }),
       });
 
-      if (!api.getToken() && result.authToken) {
-        api.setSession(
-          result.authToken,
-          result.username || formValue(form, "username"),
-        );
+      const authToken =
+        result.authToken || (result.json && result.json.authToken) || "";
+      const username =
+        result.username ||
+        (result.json && result.json.username) ||
+        formValue(form, "username");
+
+      if (!api.getToken() && authToken) {
+        api.setSession(authToken, username);
       }
 
-      if (!api.getToken() && !result.authToken) {
+      if (!api.getToken() && !authToken) {
         api.showToast(
           "Login succeeded but session token could not be stored. Please try again.",
           "error",

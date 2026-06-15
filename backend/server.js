@@ -877,6 +877,7 @@ function createApp(options = {}) {
     res.setHeader("X-Auth-Token", token);
     res.setHeader("X-User-Name", user.username);
     res.setHeader("Access-Control-Expose-Headers", "X-Auth-Token, X-User-Name");
+    return token;
   }
 
   function authenticate(req, res, next) {
@@ -1005,8 +1006,13 @@ function createApp(options = {}) {
         });
       }
 
-      issueAuthHeaders(res, user);
-      return res.send("Login successful!");
+      const authToken = issueAuthHeaders(res, user);
+      return res.json({
+        ok: true,
+        message: "Login successful!",
+        authToken,
+        username: user.username,
+      });
     }),
   );
 
