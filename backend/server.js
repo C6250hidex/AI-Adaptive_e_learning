@@ -241,12 +241,27 @@ function runProcess(command, args, options = {}) {
     let stderr = "";
     let finished = false;
 
-    const child = spawn(command, args, {
-      cwd: options.cwd,
-      shell: false,
-      windowsHide: true,
-      env: createProcessEnv(options),
-    });
+    let child;
+    try {
+      child = spawn(command, args, {
+        cwd: options.cwd,
+        shell: false,
+        windowsHide: true,
+        env: createProcessEnv(options),
+      });
+    } catch (error) {
+      finished = true;
+      return resolve({
+        ok: false,
+        code: null,
+        command,
+        unavailable: error.code === "ENOENT",
+        output:
+          error.code === "ENOENT"
+            ? `Runtime not available: ${command}. Install it or choose another language.`
+            : `Unable to start runtime: ${command}. ${error.message}`,
+      });
+    }
 
     const timer = setTimeout(() => {
       if (!finished) {

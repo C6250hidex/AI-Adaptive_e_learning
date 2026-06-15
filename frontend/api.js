@@ -3,7 +3,9 @@
 
   const TOKEN_KEY = "aiLearnAuthToken";
   const USER_KEY = "aiLearnCurrentUser";
+  const API_BASE_KEY = "AI_LEARN_API_BASE_URL";
   const DEFAULT_BACKEND = "http://localhost:5000";
+  const memoryStorage = {};
 
   function trimTrailingSlash(value) {
     return String(value || "").replace(/\/+$/, "");
@@ -12,7 +14,7 @@
   function getApiBase() {
     const configured =
       window.AI_LEARN_API_BASE_URL ||
-      window.localStorage.getItem("AI_LEARN_API_BASE_URL");
+      getStorageItem(API_BASE_KEY);
 
     if (configured) return trimTrailingSlash(configured);
 
@@ -33,22 +35,69 @@
     return DEFAULT_BACKEND;
   }
 
+  function getStorageItem(key) {
+    for (const name of ["localStorage", "sessionStorage"]) {
+      try {
+        const storage = window[name];
+        const value = storage && storage.getItem(key);
+        if (value) return value;
+      } catch {
+        // Some browser privacy modes block web storage.
+      }
+    }
+
+    return memoryStorage[key] || "";
+  }
+
+  function setStorageItem(key, value) {
+    let stored = false;
+    const text = String(value || "");
+
+    for (const name of ["localStorage", "sessionStorage"]) {
+      try {
+        const storage = window[name];
+        if (!storage) continue;
+        storage.setItem(key, text);
+        stored = storage.getItem(key) === text || stored;
+      } catch {
+        // Fall back to in-memory storage below.
+      }
+    }
+
+    memoryStorage[key] = text;
+    return stored;
+  }
+
+  function removeStorageItem(key) {
+    for (const name of ["localStorage", "sessionStorage"]) {
+      try {
+        const storage = window[name];
+        if (storage) storage.removeItem(key);
+      } catch {
+        // Ignore storage cleanup failures.
+      }
+    }
+
+    delete memoryStorage[key];
+  }
+
   function getToken() {
-    return window.localStorage.getItem(TOKEN_KEY) || "";
+    return getStorageItem(TOKEN_KEY);
   }
 
   function setSession(token, username) {
-    if (token) window.localStorage.setItem(TOKEN_KEY, token);
-    if (username) window.localStorage.setItem(USER_KEY, username);
+    if (token) setStorageItem(TOKEN_KEY, token);
+    if (username) setStorageItem(USER_KEY, username);
+    return token ? getToken() === token : false;
   }
 
   function clearSession() {
-    window.localStorage.removeItem(TOKEN_KEY);
-    window.localStorage.removeItem(USER_KEY);
+    removeStorageItem(TOKEN_KEY);
+    removeStorageItem(USER_KEY);
   }
 
   function getCurrentUser() {
-    return window.localStorage.getItem(USER_KEY) || "";
+    return getStorageItem(USER_KEY);
   }
 
   async function request(path, options = {}) {
@@ -75,8 +124,21 @@
         signal: controller.signal,
       });
       const text = await response.text();
-      const authToken = response.headers.get("X-Auth-Token");
-      const username = response.headers.get("X-User-Name");
+      let json = null;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        json = null;
+      }
+
+      const authToken =
+        response.headers.get("X-Auth-Token") ||
+        (json && (json.authToken || json.token)) ||
+        "";
+      const username =
+        response.headers.get("X-User-Name") ||
+        (json && (json.username || (json.user && json.user.username))) ||
+        "";
 
       if (authToken) setSession(authToken, username);
 
@@ -88,12 +150,11 @@
         throw error;
       }
 
-      try {
-        const json = JSON.parse(text);
+      if (json) {
         return { response, text, json, authToken, username };
-      } catch {
-        return { response, text, authToken, username };
       }
+
+      return { response, text, authToken, username };
     } catch (error) {
       if (error.name === "AbortError") {
         throw new Error("The request timed out. Please try again.");

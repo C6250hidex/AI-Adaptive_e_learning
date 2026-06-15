@@ -70,13 +70,13 @@
         (result.json && result.json.username) ||
         formValue(form, "username");
 
-      if (!api.getToken() && authToken) {
+      if (authToken) {
         api.setSession(authToken, username);
       }
 
-      if (!api.getToken() && !authToken) {
+      if (!api.getToken()) {
         api.showToast(
-          "Login succeeded but session token could not be stored. Please try again.",
+          "Login succeeded, but your browser did not keep the session token. Please enable site storage and try again.",
           "error",
         );
         api.clearSession();

@@ -3,15 +3,15 @@ REM Deployment Verification Script for AI Learn Platform (Windows)
 REM Run this script to verify your installation is ready for deployment
 
 echo.
-echo 🔍 AI Learn Platform - Deployment Verification
+echo [INFO] AI Learn Platform - Deployment Verification
 echo ================================================
 echo.
 
 REM Check Node.js
-echo ✓ Checking Node.js...
+echo [OK] Checking Node.js...
 where node >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo ✗ Node.js not found. Please install Node.js 18.0.0 or higher
+    echo [ERROR] Node.js not found. Please install Node.js 18.0.0 or higher
     pause
     exit /b 1
 )
@@ -19,10 +19,10 @@ for /f "tokens=*" %%i in ('node --version') do set NODE_VERSION=%%i
 echo   Node.js version: %NODE_VERSION%
 
 REM Check npm
-echo ✓ Checking npm...
+echo [OK] Checking npm...
 where npm >nul 2>nul
 if %ERRORLEVEL% NEQ 0 (
-    echo ✗ npm not found
+    echo [ERROR] npm not found
     pause
     exit /b 1
 )
@@ -31,9 +31,9 @@ echo   npm version: %NPM_VERSION%
 
 REM Check backend
 echo.
-echo ✓ Checking backend...
+echo [OK] Checking backend...
 if not exist "backend\package.json" (
-    echo ✗ backend\package.json not found
+    echo [ERROR] backend\package.json not found
     pause
     exit /b 1
 )
@@ -48,7 +48,7 @@ REM Check syntax
 echo   Checking syntax...
 node --check server.js
 if %ERRORLEVEL% NEQ 0 (
-    echo ✗ Syntax error in server.js
+    echo [ERROR] Syntax error in server.js
     pause
     exit /b 1
 )
@@ -58,9 +58,9 @@ if not exist ".env" (
     if exist ".env.example" (
         echo   Creating .env from .env.example...
         copy .env.example .env
-        echo   ⚠ WARNING: Please edit .env with your configuration
+        echo   [WARN] Please edit .env with your configuration
     ) else (
-        echo ✗ .env.example not found
+        echo [ERROR] .env.example not found
         pause
         exit /b 1
     )
@@ -70,9 +70,9 @@ cd ..
 
 REM Check frontend
 echo.
-echo ✓ Checking frontend...
+echo [OK] Checking frontend...
 if not exist "frontend\index.html" (
-    echo ✗ frontend\index.html not found
+    echo [ERROR] frontend\index.html not found
     pause
     exit /b 1
 )
@@ -81,7 +81,7 @@ REM Check required frontend files
 setlocal enabledelayedexpansion
 for %%F in (api.js auth.js dashboard.js style.css dashboard.css) do (
     if not exist "frontend\%%F" (
-        echo ✗ frontend\%%F not found
+        echo [ERROR] frontend\%%F not found
         pause
         exit /b 1
     )
@@ -94,14 +94,14 @@ if not exist "backend\data" (
 )
 
 echo.
-echo ✅ All checks passed! Your installation is ready for deployment.
+echo [OK] All checks passed! Your installation is ready for deployment.
 echo.
-echo 📋 Next steps:
+echo Next steps:
 echo   1. Review and configure backend\.env with your settings
 echo   2. Run: cd backend ^&^& npm start (or npm run dev for development)
 echo   3. Serve frontend files (see SETUP.md for options)
 echo   4. Access http://localhost:5500 (or your frontend port)
 echo.
-echo 📚 For more information, see SETUP.md
+echo For more information, see SETUP.md
 echo.
 pause

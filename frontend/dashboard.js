@@ -429,6 +429,7 @@
       "fixCodeBtn",
       "outputBox",
       "quizIntro",
+      "quizBox",
       "quizQuestions",
       "quizQuestionNumber",
       "quizTopicBadge",

@@ -91,8 +91,15 @@ test("login returns a session token header for valid credentials", async (t) => 
   });
 
   assert.equal(response.status, 200);
-  assert.equal(await response.text(), "Login successful!");
-  assert.match(response.headers.get("x-auth-token"), /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.equal(body.message, "Login successful!");
+  assert.equal(body.username, "session-user");
+  assert.match(
+    body.authToken,
+    /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
+  );
+  assert.equal(response.headers.get("x-auth-token"), body.authToken);
 });
 
 test("run-code executes JavaScript without shell interpolation", async (t) => {
