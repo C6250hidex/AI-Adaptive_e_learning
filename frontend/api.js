@@ -27,10 +27,7 @@
       ) {
         return window.location.origin;
       }
-      return DEFAULT_BACKEND;
     }
-
-    return DEFAULT_BACKEND;
   }
 
   function getDefaultBackend() {
